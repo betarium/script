@@ -1,0 +1,4 @@
+ディスク空き容量: %FREE_SPACE_FORMAT%
+サーバー名: %SERVER_NAME%
+サーバーIP: %SERVER_ADDRESS%
+

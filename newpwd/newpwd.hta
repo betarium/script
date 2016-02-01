@@ -1,0 +1,37 @@
+﻿<html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<head>
+<title>パスワード生成</title>
+<script>
+
+function createPassword()
+{
+	var nLength = document.formPassword.textLength.value;
+
+	var sSeed = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrxtuvwxyz0123456789";
+
+	var sItem = "";
+	for(var nLen = 0; nLen < nLength; nLen++)
+	{
+		var nIndex = Math.floor(Math.random() * 62);
+		sItem += sSeed.substr(nIndex, 1);
+	}
+
+	document.formPassword.textResult.value = sItem;
+}
+
+</script>
+
+</head>
+
+<body>
+<form name="formPassword">
+<table border="1">
+<tr><td>長さ：<input type="text" name="textLength" value="8" style="text-align: right; width: 40"/>文字</td></tr>
+<tr><td><input type="text" name="textResult" style="width: 200"/></td></tr>
+<tr><td align="right"><input type="button" name="buttonCreate" value="作成" onClick="createPassword()"/></td></tr>
+</table>
+</form>
+</body>
+</html>
+

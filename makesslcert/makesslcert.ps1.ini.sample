@@ -1,0 +1,4 @@
+OPENSSL_DIR=C:\Program Files (x86)\Git\bin;C:\Program Files\Git\bin
+
+CA_NAME=My CA
+SERVER_NAME=localhost

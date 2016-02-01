@@ -1,0 +1,10 @@
+[BACKUP]
+
+BACKUP_DIR=C:\backup
+
+TARGET_SITE=mysite
+
+BACKUP_DATABASE=1
+
+TARGET_DBSVR=localhost
+
