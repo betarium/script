@@ -109,8 +109,7 @@ Write-Output "Start update."
 
 $InstallCollection = New-Object -com "Microsoft.Update.UpdateColl"
 $AvailableUpdates | ForEach-Object {
-    #if ($_.IsDownloaded) {
-    if ($_.IsDownloaded && Not($_.IsHidden)) {
+    if ($_.IsDownloaded -And -Not($_.IsHidden)) {
         $InstallCollection.Add($_) | Out-Null
     }
 }
