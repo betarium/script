@@ -18,59 +18,154 @@ function LoadIni($filename)
     return $result
 }
 
-function BackupSitecore($conf)
+function BackupWebsite($conf)
 {
     $BACKUP_TARGET_DIR = $conf["BACKUP_TARGET_DIR"]
-    $TARGET_SITE = $conf["TARGET_SITE"]
+    $BACKUP_SITE = $conf["BACKUP_SITE"]
     $TARGET_DBSVR = $conf["TARGET_DBSVR"]
     $BACKUP_DATABASE = $conf["BACKUP_DATABASE"]
-    $WEBSITE_DIR = $conf["WEBSITE_DIR"]
+    $BACKUP_WEBSITE_DIR = $conf["BACKUP_WEBSITE_DIR"]
+    $BACKUP_WEBSITE_RESOURCE_LIST = $conf["BACKUP_WEBSITE_RESOURCE_LIST"]
+    $BACKUP_WEBSITE_DLL = $conf["BACKUP_WEBSITE_DLL"]
 
-    if (!( Test-Path $BACKUP_TARGET_DIR)) {
-        mkdir $BACKUP_TARGET_DIR | Out-Null
+    #if (!( Test-Path $BACKUP_TARGET_DIR)) {
+    #    mkdir $BACKUP_TARGET_DIR | Out-Null
+    #}
+
+    $target_dir = Join-Path $BACKUP_TARGET_DIR "Website"
+
+    mkdir $target_dir | Out-Null
+
+    if ($BACKUP_WEBSITE_DLL -eq $null) {
+        $BACKUP_WEBSITE_DLL = "*.dll"
     }
 
-    Write-Output "backup dir=$BACKUP_TARGET_DIR"
+#    Write-Output "backup dir=$BACKUP_TARGET_DIR"
+#
+#    if($BACKUP_DATABASE -eq "1")
+#    {
+#        Write-Output "start backup database"
+#
+#        Invoke-Sqlcmd -ServerInstance $TARGET_DBSVR -Query "BACKUP DATABASE ${BACKUP_SITE}Sitecore_Core   TO DISK='$BACKUP_TARGET_DIR\${BACKUP_SITE}Sitecore_Core.bak' WITH INIT"
+#        Invoke-Sqlcmd -ServerInstance $TARGET_DBSVR -Query "BACKUP DATABASE ${BACKUP_SITE}Sitecore_Master TO DISK='$BACKUP_TARGET_DIR\${BACKUP_SITE}Sitecore_Master.bak' WITH INIT"
+#        Invoke-Sqlcmd -ServerInstance $TARGET_DBSVR -Query "BACKUP DATABASE ${BACKUP_SITE}Sitecore_Web    TO DISK='$BACKUP_TARGET_DIR\${BACKUP_SITE}Sitecore_Web.bak' WITH INIT"
+#
+#        Write-Output "complete backup database"
+#    }
 
-    if($BACKUP_DATABASE -eq "1")
+    Write-Output "Start backup website."
+
+    Copy-Item -Path ${BACKUP_WEBSITE_DIR}\${BACKUP_SITE}\Website\App_Config -Destination $target_dir -Recurse -Force
+
+    Copy-Item -Path ${BACKUP_WEBSITE_DIR}\${BACKUP_SITE}\Website\bin -Destination $target_dir -Filter $BACKUP_WEBSITE_DLL -Recurse -Force
+
+    Copy-Item -Path ${BACKUP_WEBSITE_DIR}\${BACKUP_SITE}\Website\layouts $target_dir -Recurse -Force
+
+    Copy-Item -Path ${BACKUP_WEBSITE_DIR}\${BACKUP_SITE}\Website\Web.config $target_dir -Force
+
+    if ($BACKUP_WEBSITE_RESOURCE_LIST -ne "" -and $BACKUP_WEBSITE_RESOURCE_LIST -ne $null) {
+        foreach($path in $BACKUP_WEBSITE_RESOURCE_LIST -Split ","){
+            if(Test-Path ${BACKUP_WEBSITE_DIR}\${BACKUP_SITE}\Website\$path -PathType Container)
+            {
+                Copy-Item -Path ${BACKUP_WEBSITE_DIR}\${BACKUP_SITE}\Website\$path $target_dir -Recurse -Force
+            }
+            else
+            {
+                Copy-Item -Path ${BACKUP_WEBSITE_DIR}\${BACKUP_SITE}\Website\$path $target_dir -Force
+            }
+        }
+    }
+
+    Write-Output "Complete backup website."
+}
+
+function BackupDatabase($conf)
+{
+    $BACKUP_TARGET_DIR = $conf["BACKUP_TARGET_DIR"]
+    $BACKUP_SITE = $conf["BACKUP_SITE"]
+    $BACKUP_DATABASE_LIST = $conf["BACKUP_DATABASE_LIST"]
+    $BACKUP_DATABASE_SERVER = $conf["BACKUP_DATABASE_SERVER"]
+
+    $target_dir = Join-Path $BACKUP_TARGET_DIR "Database"
+
+    mkdir $target_dir | Out-Null
+
+    Write-Output "Start backup database."
+
+    $databaseList = $BACKUP_DATABASE_LIST -split ","
+
+    foreach($databaseTemp in $databaseList)
     {
-        Write-Output "start backup database"
+        $database = $databaseTemp
+        $database = $database -replace ("%BACKUP_SITE%", "${BACKUP_SITE}")
+        Write-Output "  Backup database [${database}] ..."
+        $backupPath = "$target_dir\${database}.bak"
 
-        Invoke-Sqlcmd -ServerInstance $TARGET_DBSVR -Query "BACKUP DATABASE ${TARGET_SITE}Sitecore_Core   TO DISK='$BACKUP_TARGET_DIR\${TARGET_SITE}Sitecore_Core.bak' WITH INIT"
-        Invoke-Sqlcmd -ServerInstance $TARGET_DBSVR -Query "BACKUP DATABASE ${TARGET_SITE}Sitecore_Master TO DISK='$BACKUP_TARGET_DIR\${TARGET_SITE}Sitecore_Master.bak' WITH INIT"
-        Invoke-Sqlcmd -ServerInstance $TARGET_DBSVR -Query "BACKUP DATABASE ${TARGET_SITE}Sitecore_Web    TO DISK='$BACKUP_TARGET_DIR\${TARGET_SITE}Sitecore_Web.bak' WITH INIT"
+        if (( Test-Path $backupPath))
+        {
+            del $backupPath
+        }
 
-        Write-Output "complete backup database"
+        sqlcmd -S $BACKUP_DATABASE_SERVER -Q "BACKUP DATABASE ${database} TO DISK='${backupPath}' WITH INIT"
     }
 
-    Write-Output "start backup file"
+    Write-Output "Complete backup database."
+}
 
-    Copy-Item -Path ${WEBSITE_DIR}\${TARGET_SITE}\Website\App_Config -Destination $BACKUP_TARGET_DIR -Recurse -Force
+function CompressZip($conf)
+{
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
 
-    Copy-Item -Path ${WEBSITE_DIR}\${TARGET_SITE}\Website\bin -Destination $BACKUP_TARGET_DIR -Recurse -Force
+    $BACKUP_TARGET_DIR = $conf["BACKUP_TARGET_DIR"]
+    $BACKUP_ZIP_PATH = $INI["BACKUP_ZIP_PATH"]
 
-    Copy-Item -Path ${WEBSITE_DIR}\${TARGET_SITE}\Website\layouts $BACKUP_TARGET_DIR -Recurse -Force
+    Write-Output "Start compress. BACKUP_ZIP_PATH=$BACKUP_ZIP_PATH"
 
-    Copy-Item -Path ${WEBSITE_DIR}\${TARGET_SITE}\Website\Web.config $BACKUP_TARGET_DIR -Force
+    if (( Test-Path $BACKUP_ZIP_PATH)) {
+        del $BACKUP_ZIP_PATH
+    }
 
-    Write-Output "complete backup file"
+    [System.IO.Compression.ZipFile]::CreateFromDirectory($BACKUP_TARGET_DIR, $BACKUP_ZIP_PATH)
+
+    rmdir -Recurse $BACKUP_TARGET_DIR
+
+    Write-Output "Complete compress."
+}
+
+function BackupKeepMonth($conf)
+{
+    if([Datetime]::Today.Day -ne 1)
+    {
+        return
+    }
+
+    $BACKUP_DIR = $INI["BACKUP_DIR"]
+    $BACKUP_ZIP_PATH = $INI["BACKUP_ZIP_PATH"]
+
+    $backup_name2 = "month" + ([Datetime]::Today.ToString("yyyyMM")) + ".zip"
+    $zipPath2 = Join-Path $BACKUP_DIR $backup_name2
+
+    if (( Test-Path $zipPath2)) {
+        del $zipPath2
+    }
+
+    copy $BACKUP_ZIP_PATH $zipPath2
 }
 
 function Main()
 {
     $Error.Clear()
 
-    #$SCRIPT_NAME = $script:MyInvocation.MyCommand.Path
-    $BASE_DIR = & { Split-Path -Parent $MyInvocation.ScriptName }
-    $NOW_KEY = [DateTime]::Now.ToString("yyyyMMdd_HHmmss");
     $SCRIPT_NAME = & { $MyInvocation.ScriptName }
+    $BASE_DIR = Split-Path -Parent $SCRIPT_NAME
+    $NOW_KEY = [DateTime]::Now.ToString("yyyyMMdd_HHmmss");
 
     $INI_PATH = $SCRIPT_NAME -replace (".ps1", ".ini")
 
     if(!(Test-Path $INI_PATH))
     {
         Write-Output "Error: Invalid INI_PATH $INI_PATH"
-        Return
+        Return 1
     }
 
     $INI = LoadIni $INI_PATH
@@ -80,25 +175,33 @@ function Main()
         $INI["BACKUP_DIR"] = $BASE_DIR
     }
 
-    if($INI["WEBSITE_DIR"] -eq $Null)
+    if($INI["BACKUP_WEBSITE_DIR"] -eq $Null)
     {
-        $INI["WEBSITE_DIR"] = "C:\inetpub\wwwroot"
+        $INI["BACKUP_WEBSITE_DIR"] = "C:\inetpub\wwwroot"
     }
 
     $BACKUP_DIR = $INI["BACKUP_DIR"]
     $BACKUP_KEY = $INI["BACKUP_KEY"]
     $LOG_DIR = $INI["LOG_DIR"]
     $BACKUP_TARGET_DIR = $INI["BACKUP_TARGET_DIR"]
+    $BACKUP_DATABASE = $INI["BACKUP_DATABASE"]
 
-    if (!( Test-Path $BACKUP_DIR))
+    if (!(Test-Path $BACKUP_DIR -PathType Container))
     {
         Write-Output "Error: Invalid BACKUP_DIR $BACKUP_DIR"
-        Return
+        Return 1
     }
 
     if($BACKUP_KEY -eq $null)
     {
         $BACKUP_KEY = $NOW_KEY
+        $INI["BACKUP_KEY"] = $BACKUP_KEY
+    }
+
+    if($INI["BACKUP_ROTATE_WEEK"] -eq "1")
+    {
+        $BACKUP_KEY = "week" + [int]([Datetime]::Now.DayOfWeek)
+        $INI["BACKUP_KEY"] = $BACKUP_KEY
     }
 
     if($BACKUP_TARGET_DIR -eq $null)
@@ -110,7 +213,15 @@ function Main()
     if($LOG_DIR -eq $null)
     {
         $LOG_DIR = Join-Path $BACKUP_DIR "log"
+        $INI["LOG_DIR"] = $LOG_DIR
     }
+
+    if($INI["BACKUP_DATABASE_LIST"] -eq $null)
+    {
+        $INI["BACKUP_DATABASE_LIST"] = "%BACKUP_SITE%Sitecore_Core,%BACKUP_SITE%Sitecore_Master,%BACKUP_SITE%Sitecore_Web"
+    }
+
+    $INI["BACKUP_ZIP_PATH"] = Join-Path $BACKUP_DIR "$BACKUP_KEY.zip"
 
     if (!( Test-Path $LOG_DIR))
     {
@@ -125,12 +236,57 @@ function Main()
 
     try
     {
-        BackupSitecore $INI
+        Write-Output "start backup. BACKUP_TARGET_DIR=$BACKUP_TARGET_DIR"
+
+        if($INI["BACKUP_ROTATE_WEEK"] -eq "1" -and (Test-Path $BACKUP_TARGET_DIR))
+        {
+            rmdir -Recurse $BACKUP_TARGET_DIR
+        }
+
+        if (!( Test-Path $BACKUP_TARGET_DIR)) {
+            mkdir $BACKUP_TARGET_DIR | Out-Null
+        }
+
+        BackupWebsite $INI
+        if($BACKUP_DATABASE -eq "1")
+        {
+            BackupDatabase $INI
+        }
     }
     catch
     {
-        Write-Output "Error: BackupSitecore failed"
+        Write-Output "Error: Backup failed."
         Write-Output $Error
+
+        stop-transcript
+
+        Return 1
+    }
+
+    stop-transcript
+
+    $log_path2 = Join-Path $BACKUP_TARGET_DIR "backup.log"
+    copy $log_path $log_path2
+
+    start-transcript $log_path -append
+
+    try
+    {
+        CompressZip $INI
+
+        if($INI["BACKUP_KEEP_MONTH"] -eq "1")
+        {
+            BackupKeepMonth $INI
+        }
+    }
+    catch
+    {
+        Write-Output "Error: Backup failed."
+        Write-Output $Error
+
+        stop-transcript
+
+        Return 1
     }
 
     stop-transcript
