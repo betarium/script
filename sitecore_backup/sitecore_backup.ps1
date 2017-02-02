@@ -1,4 +1,4 @@
-# Set-ExecutionPolicy RemoteSigned
+# Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
 
 ########################################
 
@@ -175,6 +175,11 @@ function Main()
         $INI["BACKUP_DIR"] = $BASE_DIR
     }
 
+    if($INI["BACKUP_WEBSITE"] -eq $Null)
+    {
+        $INI["BACKUP_WEBSITE"] = "1"
+    }
+
     if($INI["BACKUP_WEBSITE_DIR"] -eq $Null)
     {
         $INI["BACKUP_WEBSITE_DIR"] = "C:\inetpub\wwwroot"
@@ -184,6 +189,7 @@ function Main()
     $BACKUP_KEY = $INI["BACKUP_KEY"]
     $LOG_DIR = $INI["LOG_DIR"]
     $BACKUP_TARGET_DIR = $INI["BACKUP_TARGET_DIR"]
+    $BACKUP_WEBSITE = $INI["BACKUP_WEBSITE"]
     $BACKUP_DATABASE = $INI["BACKUP_DATABASE"]
 
     if (!(Test-Path $BACKUP_DIR -PathType Container))
@@ -247,7 +253,11 @@ function Main()
             mkdir $BACKUP_TARGET_DIR | Out-Null
         }
 
-        BackupWebsite $INI
+        if($BACKUP_WEBSITE -eq "1")
+        {
+            BackupWebsite $INI
+        }
+
         if($BACKUP_DATABASE -eq "1")
         {
             BackupDatabase $INI
@@ -272,11 +282,14 @@ function Main()
 
     try
     {
-        CompressZip $INI
-
-        if($INI["BACKUP_KEEP_MONTH"] -eq "1")
+        if($INI["BACKUP_COMPRESS_ZIP"] -eq "1")
         {
-            BackupKeepMonth $INI
+            CompressZip $INI
+
+            if($INI["BACKUP_KEEP_MONTH"] -eq "1")
+            {
+                BackupKeepMonth $INI
+            }
         }
     }
     catch
