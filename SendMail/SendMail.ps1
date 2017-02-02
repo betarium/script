@@ -24,7 +24,7 @@ function LoadIni($filename)
 function SendMail($conf, $mailSubject, $mailBody)
 {
     $credential = $null
-    if($conf["SmtpUser"] -ne "" -and $conf["SmtpPassword"] -ne "")
+    if($conf["SmtpUser"] -ne $null -and $conf["SmtpPassword"] -ne $null)
     {
         $password = ConvertTo-SecureString $conf["SmtpPassword"] -AsPlainText -Force
         $credential = New-Object System.Management.Automation.PSCredential($conf["SmtpUser"], $password)
@@ -45,53 +45,60 @@ function SendMail($conf, $mailSubject, $mailBody)
         $SmtpUseSsl = $false
     }
 
-    Send-MailMessage -To $mailTo -From $conf["MailFrom"] `
-        -Subject $mailSubject -Body $mailBody `
-        -SmtpServer $conf["SmtpServer"] -Port $conf["SmtpPort"] -UseSsl:$SmtpUseSsl `
-        -Credential $credential -Encoding UTF8
+    if($credential -eq $null){
+        Send-MailMessage -To $mailTo -From $conf["MailFrom"] `
+            -Subject $mailSubject -Body $mailBody `
+            -SmtpServer $conf["SmtpServer"] -Port $conf["SmtpPort"] -UseSsl:$SmtpUseSsl `
+            -Encoding UTF8
+    }else{
+        Send-MailMessage -To $mailTo -From $conf["MailFrom"] `
+            -Subject $mailSubject -Body $mailBody `
+            -SmtpServer $conf["SmtpServer"] -Port $conf["SmtpPort"] -UseSsl:$SmtpUseSsl `
+            -Credential $credential -Encoding UTF8
+    }
 }
 
 function Main($scriptPath, $Subject, $Message)
 {
-	Write-Output "Start SendMail."
+    Write-Output "Start SendMail."
 
-	$INI_PATH = ([System.IO.Path]::ChangeExtension($scriptPath, ".ini"))
+    $INI_PATH = ([System.IO.Path]::ChangeExtension($scriptPath, ".ini"))
 
-	$INI = LoadIni $INI_PATH
+    $INI = LoadIni $INI_PATH
 
-	if($Subject -eq "")
-	{
-		$Subject = $INI["MailSubject"]
-	}
-	if($Message -eq "")
-	{
-		$Message = $INI["MailMessage"]
-	}
-	$Message += "`n`n" + "Host:" + $Env:COMPUTERNAME + "`n"
+    if($Subject -eq "")
+    {
+        $Subject = $INI["MailSubject"]
+    }
+    if($Message -eq "")
+    {
+        $Message = $INI["MailMessage"]
+    }
+    $Message += "`n`n" + "Host:" + $Env:COMPUTERNAME + "`n"
 
-	SendMail $INI $Subject $Message
+    SendMail $INI $Subject $Message
 
-	Write-Output ("Complete SendMail. mailto=" + $INI["MailTo"])
+    Write-Output ("Complete SendMail. mailto=" + $INI["MailTo"])
 }
 
 
 try
 {
-	$ErrorActionPreference = "stop"
-	$error.clear()
-	start-transcript ([System.IO.Path]::ChangeExtension($MyInvocation.MyCommand.Path, ".log"))
+    $ErrorActionPreference = "stop"
+    $error.clear()
+    start-transcript ([System.IO.Path]::ChangeExtension($MyInvocation.MyCommand.Path, ".log"))
 
-	Main $MyInvocation.MyCommand.Path $Subject $Message
+    Main $MyInvocation.MyCommand.Path $Subject $Message
 
-	Exit 0
+    Exit 0
 }
 catch [Exception]
 {
-	Write-Output "SendMail Error"
-	Write-Output $error
-	Exit -1
+    Write-Output "SendMail Error"
+    Write-Output $error
+    Exit -1
 }
 finally
 {
-	stop-transcript
+    stop-transcript
 }
