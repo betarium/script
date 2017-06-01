@@ -61,10 +61,25 @@ function BackupWebsite($conf)
 
     Copy-Item -Path ${BACKUP_WEBSITE_DIR}\${BACKUP_SITE}\Website\layouts $target_dir -Recurse -Force
 
+    if(Test-Path ${BACKUP_WEBSITE_DIR}\${BACKUP_SITE}\Website\Areas)
+    {
+        Copy-Item -Path ${BACKUP_WEBSITE_DIR}\${BACKUP_SITE}\Website\Areas $target_dir -Recurse -Force
+    }
+
+    if(Test-Path ${BACKUP_WEBSITE_DIR}\${BACKUP_SITE}\Website\Views)
+    {
+        Copy-Item -Path ${BACKUP_WEBSITE_DIR}\${BACKUP_SITE}\Website\Views $target_dir -Recurse -Force
+    }
+
     Copy-Item -Path ${BACKUP_WEBSITE_DIR}\${BACKUP_SITE}\Website\Web.config $target_dir -Force
 
     if ($BACKUP_WEBSITE_RESOURCE_LIST -ne "" -and $BACKUP_WEBSITE_RESOURCE_LIST -ne $null) {
         foreach($path in $BACKUP_WEBSITE_RESOURCE_LIST -Split ","){
+            if(-Not (Test-Path ${BACKUP_WEBSITE_DIR}\${BACKUP_SITE}\Website\$path))
+            {
+                Continue
+            }
+
             if(Test-Path ${BACKUP_WEBSITE_DIR}\${BACKUP_SITE}\Website\$path -PathType Container)
             {
                 Copy-Item -Path ${BACKUP_WEBSITE_DIR}\${BACKUP_SITE}\Website\$path $target_dir -Recurse -Force
@@ -127,7 +142,7 @@ function CompressZip($conf)
 
     [System.IO.Compression.ZipFile]::CreateFromDirectory($BACKUP_TARGET_DIR, $BACKUP_ZIP_PATH)
 
-    rmdir -Recurse $BACKUP_TARGET_DIR
+    rmdir -Recurse -Force $BACKUP_TARGET_DIR
 
     Write-Output "Complete compress."
 }
