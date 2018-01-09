@@ -261,7 +261,7 @@ function Main()
 
         if($INI["BACKUP_ROTATE_WEEK"] -eq "1" -and (Test-Path $BACKUP_TARGET_DIR))
         {
-            rmdir -Recurse $BACKUP_TARGET_DIR
+            rmdir -Force -Recurse $BACKUP_TARGET_DIR
         }
 
         if (!( Test-Path $BACKUP_TARGET_DIR)) {

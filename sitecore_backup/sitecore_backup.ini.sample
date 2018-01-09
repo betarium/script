@@ -4,6 +4,8 @@ BACKUP_SITE=mysite
 
 #BACKUP_DIR=C:\backup
 
+#BACKUP_WEBSITE=1
+
 #BACKUP_WEBSITE_DLL=mysite*.dll
 
 #BACKUP_WEBSITE_RESOURCE_LIST=mysite_resource
