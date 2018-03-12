@@ -1,1 +1,1 @@
-powershell "start -Verb runas powershell.exe ""-NoExit Set-ExecutionPolicy RemoteSigned -Scope LocalMachine`nGet-ExecutionPolicy -Scope LocalMachine"""
+powershell "start -Verb runas powershell.exe ""-NoExit Set-ExecutionPolicy RemoteSigned -Scope CurrentUser`nGet-ExecutionPolicy -Scope CurrentUser"""

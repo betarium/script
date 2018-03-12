@@ -1,4 +1,4 @@
-set path=C:\Program Files\Git\bin;C:\Program Files (x86)\Git\bin;%path%
+set path=C:\Program Files\Git\bin;C:\Program Files (x86)\Git\bin;%path%;C:\Program Files\Git\usr\bin
 
 set SSH_DIR=%USERPROFILE%\.ssh
 

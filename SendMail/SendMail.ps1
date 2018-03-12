@@ -90,12 +90,19 @@ try
 
     Main $MyInvocation.MyCommand.Path $Subject $Message
 
+    Start-Sleep -s 3
+
     Exit 0
 }
 catch [Exception]
 {
     Write-Output "SendMail Error"
     Write-Output $error
+
+    Start-Sleep -s 10
+
+    #pause
+
     Exit -1
 }
 finally
