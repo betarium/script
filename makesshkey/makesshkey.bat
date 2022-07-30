@@ -6,7 +6,8 @@ mkdir %SSH_DIR%
 
 if exist %SSH_DIR%\id_rsa exit /b
 
-ssh-keygen -t rsa -N "" -P "" -f %SSH_DIR%\id_rsa -C %USERNAME%
+rem ssh-keygen -t rsa -N "" -P "" -f %SSH_DIR%\id_rsa -C %USERNAME%
+ssh-keygen -t ed25519 -N "" -P "" -f %SSH_DIR%\id_rsa -C %USERNAME%
 
 explorer %SSH_DIR%
 
